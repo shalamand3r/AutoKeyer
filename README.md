@@ -2,7 +2,7 @@
 ---
 ## An incredibly simple, ***FREE*** macOS autotyper, made completely out of AppleScript 😭 
 ---
-
+![image](https://github.com/salameanon/AutoKey/blob/main/AutoKey.png)
 ---
 # TUTORIAL:
 ---
