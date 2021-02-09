@@ -1,6 +1,8 @@
 # AutoKey
 ---
-### An incredibly simple, ***FREE*** macOS autotyper, made completely out of AppleScript
+## An incredibly simple, ***FREE*** macOS autotyper, made completely out of AppleScript 😭 
+---
+
 ---
 # TUTORIAL:
 ---
