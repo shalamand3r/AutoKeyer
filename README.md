@@ -6,7 +6,7 @@
 ---
 # TUTORIAL:
 ---
-#### 1. Download AutoKeyer from the releases page (https://github.com/salameanon/AutoKey/releases)
+#### 1. Download AutoKeyer from the releases page (https://github.com/salameanon/AutoKeyer/releases)
 ---
 #### 2. Open the package installer
 ###### Either hold the control key while clicking it and press "open" or open System Preferences and click "Open Anyway" in the Security & Privacy pane.
