@@ -1,5 +1,5 @@
 # AutoKeyer ⌨️
-### A simple, cute, and efficient macOS autotyper
+### A macOS autotyper
 
 AutoKeyer is a lightweight menu bar utility designed to simulate human-like typing for whatever is on your clipboard. This is useful when you're dealing with restrictive text fields that block pasting.
 
