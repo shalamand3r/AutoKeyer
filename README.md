@@ -1,17 +1,28 @@
-# AutoKeyer
+# AutoKeyer ⌨️
+### A simple, cute, and efficient macOS autotyper
+
+AutoKeyer is a lightweight menu bar utility designed to simulate human-like typing for whatever is on your clipboard. This is useful when you're dealing with restrictive text fields that block pasting.
+
 ---
-## An incredibly simple, ***FREE*** macOS autotyper, made completely out of AppleScript 😭 
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="https://github.com/salameanon/AutoKey/blob/main/AutoKeyer.png" width="300">
+    </td>
+  </tr>
+</table>
+
 ---
-![image](https://github.com/salameanon/AutoKey/blob/main/AutoKey.png)
+
+## Usage
+
+- **Left click** → Open settings and clipboard preview
+- **Right click** → Instantly start/stop typing
+- **Hold ⌃ Control** → Global abort shortcut
+
+Download the latest version from **[Releases](https://github.com/salameanon/AutoKeyer/releases)**
+
 ---
-# TUTORIAL:
----
-#### 1. Download AutoKeyer from the releases page (https://github.com/salameanon/AutoKeyer/releases)
----
-#### 2. Open the package installer
-###### Either hold the control key while clicking it and press "open" or open System Preferences and click "Open Anyway" in the Security & Privacy pane.
----
-#### 3. Open AutoKey and copy something to your clipboard for AutoKeyer to type. 
----
-#### 4. Type away!
----
+
+###### Note: Requires Accessibility permissions in System Settings to simulate keystrokes.
