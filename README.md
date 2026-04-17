@@ -8,7 +8,7 @@ AutoKeyer is a lightweight menu bar utility designed to simulate human-like typi
 <table align="center">
   <tr>
     <td align="center">
-      <img src="https://github.com/salameanon/AutoKey/blob/main/AutoKeyer.png" width="300">
+      <img src="https://github.com/salameanon/AutoKey/blob/main/AutoKeyer.png" width="350">
     </td>
     <td align="center">
       <img src="https://github.com/salameanon/AutoKey/blob/main/AppSS.png" width="300">
