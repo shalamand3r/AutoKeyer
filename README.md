@@ -10,6 +10,9 @@ AutoKeyer is a lightweight menu bar utility designed to simulate human-like typi
     <td align="center">
       <img src="https://github.com/salameanon/AutoKey/blob/main/AutoKeyer.png" width="300">
     </td>
+    <td align="center">
+      <img src="https://github.com/salameanon/AutoKey/blob/main/AppSS.png" width="300">
+    </td>
   </tr>
 </table>
 
