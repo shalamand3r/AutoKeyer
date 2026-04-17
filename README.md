@@ -28,4 +28,4 @@ Download the latest version from **[Releases](https://github.com/salameanon/Auto
 
 ---
 
-###### Note: Requires Accessibility permissions in System Settings to simulate keystrokes.
+###### Note: Requires Accessibility permissions in System Settings to simulate keystrokes. Apparently doesn't function on Ventura. Don't have a Mac running macOS 13 to test ATM.
