@@ -1,0 +1,23 @@
+# mac
+.DS_Store
+
+# xcode
+DerivedData/
+.derivedData/
+*.xcuserstate
+*.xcuserdata/
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+
+# build
+build/
+*.ipa
+
+# swiftpm (just in case)
+.swiftpm/
+
+# user-specific xcode stuff
+xcuserdata/
+*.xcuserdatad/
+
