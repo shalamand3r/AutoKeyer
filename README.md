@@ -21,8 +21,8 @@ AutoKeyer is a lightweight menu bar utility designed to simulate human-like *cha
 
 ## Usage
 
-- **Left click** → Open settings and clipboard preview
-- **Right click** → Instantly start/stop typing
+- **Left click menu bar icon** → Open AutoKeyer menu
+- **Right click menu bar icon** → Instantly start/stop typing what is currently copied to your clipbaord
 - **Hold ⌃ Control** → Global abort shortcut
 
 Download the latest version from **[Releases](https://github.com/salameanon/AutoKeyer/releases)**
