@@ -8,11 +8,11 @@ AutoKeyer is a lightweight menu bar utility designed to simulate human-like *cha
 <table align="center">
   <tr>
     <td align="center">
-      <img src="https://github.com/salameanon/AutoKey/blob/main/AutoKeyer.png" width="350">
+      <img src="assets/AutoKeyer.png" width="350">
     </td>
     <td align="center">
-      <img src="https://github.com/salameanon/AutoKey/blob/main/AppSSL.png#gh-light-mode-only" width="300">
-      <img src="https://github.com/salameanon/AutoKey/blob/main/AppSSD.png#gh-dark-mode-only" width="300">
+      <img src="assets/AppSSL.png#gh-light-mode-only" width="300">
+      <img src="assets/AppSSD.png#gh-dark-mode-only" width="300">
     </td>
   </tr>
 </table>
