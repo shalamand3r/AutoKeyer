@@ -4,6 +4,11 @@
 import SwiftUI
 import Combine
 
+extension Notification.Name {
+    static let permissionFlowActiveChanged = Notification.Name("permissionFlowActiveChanged")
+    static let askForPermissionBackTapped = Notification.Name("AskForPermissionBackTapped")
+}
+
 @main
 struct AutoKeyerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -24,7 +29,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         let popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 480)
+        popover.contentSize = NSSize(width: 300, height: 430)
         popover.behavior = .transient
         popover.animates = true
         // bridge swiftui to appkit popover
@@ -52,6 +57,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             self?.popover.performClose(nil)
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .permissionFlowActiveChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self else { return }
+            let isActive = (note.object as? Bool) ?? false
+            self.popover.behavior = isActive ? .applicationDefined : .transient
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .askForPermissionBackTapped,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.manager.showPermissionAlert = true
+            NotificationCenter.default.post(name: .permissionFlowActiveChanged, object: false)
+            self.showPopoverIfNeeded()
         }
 
         if !UserDefaults.standard.bool(forKey: "hasLaunchedBefore") {
@@ -106,15 +132,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func togglePopover() {
-        if let button = statusBarItem.button {
-            if popover.isShown {
-                popover.performClose(nil)
-            } else {
-                NSApp.unhide(nil)
-                NSApp.activate(ignoringOtherApps: true)
-                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-                popover.contentViewController?.view.window?.makeKey()
-            }
+        if popover.isShown {
+            popover.performClose(nil)
+            return
         }
+        showPopoverIfNeeded()
+    }
+
+    func showPopoverIfNeeded() {
+        guard let button = statusBarItem.button else { return }
+        if popover.isShown { return }
+        NSApp.unhide(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.contentViewController?.view.window?.makeKey()
     }
 }

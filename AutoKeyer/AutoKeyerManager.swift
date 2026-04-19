@@ -2,8 +2,40 @@
 // AutoKeyer
 
 import SwiftUI
-import ApplicationServices
 import Combine
+import AskForPermission
+
+private struct SemVer: Comparable {
+    let parts: [Int]
+
+    init?(_ rawValue: String) {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleaned = trimmed.hasPrefix("v") ? String(trimmed.dropFirst()) : trimmed
+        let components = cleaned.split(separator: ".")
+        guard !components.isEmpty, components.allSatisfy({ Int($0) != nil }) else { return nil }
+        self.parts = components.map { Int($0)! }
+    }
+
+    static func < (lhs: SemVer, rhs: SemVer) -> Bool {
+        let maxCount = max(lhs.parts.count, rhs.parts.count)
+        for index in 0..<maxCount {
+            let left = index < lhs.parts.count ? lhs.parts[index] : 0
+            let right = index < rhs.parts.count ? rhs.parts[index] : 0
+            if left != right { return left < right }
+        }
+        return false
+    }
+}
+
+private struct GitHubReleaseResponse: Decodable, Sendable {
+    let tagName: String
+    let htmlURL: URL
+
+    enum CodingKeys: String, CodingKey {
+        case tagName = "tag_name"
+        case htmlURL = "html_url"
+    }
+}
 
 class AutoKeyerManager: ObservableObject {
     static let shared = AutoKeyerManager()
@@ -41,12 +73,18 @@ class AutoKeyerManager: ObservableObject {
     @Published var showPermissionAlert: Bool = false
     @Published var remainingTime: String = "0s"
     @Published var currentIndex: Int = 0
+    @Published var hasUpdateAvailable: Bool = false
+    @Published var latestReleaseURL: URL?
+    @Published var latestReleaseTag: String?
     
     private var lastChangeCount = NSPasteboard.general.changeCount
     private var typingTask: Task<Void, Never>?
     private var globalEventMonitor: Any?
 
     var isRandomMode: Bool { baseDelay >= 0.50 }
+    var currentVersionString: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0"
+    }
 
     private var expectedSecondsPerChar: Double {
         if isRandomMode {
@@ -85,6 +123,36 @@ class AutoKeyerManager: ObservableObject {
         setupGlobalAbortMonitor()
         setupRemainingTimeAutoUpdate()
         setupAccessibilityRecheck()
+        checkForUpdate()
+    }
+
+    func checkForUpdate() {
+        guard let currentVersion = SemVer(currentVersionString) else { return }
+        guard let url = URL(string: "https://api.github.com/repos/shalamand3r/AutoKeyer/releases/latest") else { return }
+
+        Task { @MainActor in
+            var request = URLRequest(url: url)
+            request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+            request.setValue("AutoKeyer", forHTTPHeaderField: "User-Agent")
+
+            do {
+                let (data, _) = try await URLSession.shared.data(for: request)
+                let decoder = JSONDecoder()
+                let release = try decoder.decode(GitHubReleaseResponse.self, from: data)
+
+                guard let latestVersion = SemVer(release.tagName) else {
+                    return
+                }
+                let isUpdateAvailable = latestVersion > currentVersion
+
+                await MainActor.run {
+                    self.latestReleaseURL = release.htmlURL
+                    self.latestReleaseTag = release.tagName
+                    self.hasUpdateAvailable = isUpdateAvailable
+                }
+            } catch {
+            }
+        }
     }
 
     private func setupRemainingTimeAutoUpdate() {
@@ -99,10 +167,17 @@ class AutoKeyerManager: ObservableObject {
     private func setupAccessibilityRecheck() {
         accessibilityCheckTimer?.invalidate()
         accessibilityCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            if self.isTyping {
-                let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false] as CFDictionary
-                let isTrusted = AXIsProcessTrustedWithOptions(options)
-                if !isTrusted {
+            Task { @MainActor in
+                let isTrusted = AskForPermission.status(for: .accessibility)
+                if isTrusted {
+                    if self.showPermissionAlert {
+                        self.showPermissionAlert = false
+                        NotificationCenter.default.post(name: .permissionFlowActiveChanged, object: false)
+                    }
+                    return
+                }
+
+                if self.isTyping {
                     self.stopProcess()
                     self.showPermissionAlert = true
                 }
@@ -148,18 +223,16 @@ class AutoKeyerManager: ObservableObject {
     }
 
     func checkAndStart() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false] as CFDictionary
-        let isTrusted = AXIsProcessTrustedWithOptions(options)
-        
-        if isTrusted {
-            if isTyping {
-                withAnimation { isPaused = true }
-            } else {
-                startTypingProcess()
-            }
-        } else {
+        guard ensureAccessibilityPermission() else {
             self.isTyping = false
             self.showPermissionAlert = true
+            return
+        }
+
+        if isTyping {
+            withAnimation { isPaused = true }
+        } else {
+            startTypingProcess()
         }
     }
 
@@ -174,9 +247,20 @@ class AutoKeyerManager: ObservableObject {
     }
 
     func resumeProcess() {
+        guard ensureAccessibilityPermission() else {
+            self.isTyping = false
+            self.isPaused = false
+            self.showPermissionAlert = true
+            return
+        }
+
         withAnimation(.easeInOut) { isPaused = false }
         NotificationCenter.default.post(name: NSNotification.Name("ClosePopover"), object: nil)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { NSApp.hide(nil) }
+    }
+
+    private func ensureAccessibilityPermission() -> Bool {
+        AskForPermission.status(for: .accessibility)
     }
 
     // start typing the clipboard content, with a little delay to let the user get their hands off the keyboard after clicking "start" (ok github copilot suggestion LOL)
@@ -263,13 +347,7 @@ class AutoKeyerManager: ObservableObject {
     }
 
     func openSettings() {
-        // try to trigger the system-level accessibility prompt first (does this even work????)
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
         NSWorkspace.shared.open(url)
-        NotificationCenter.default.post(name: NSNotification.Name("ClosePopover"), object: nil)
-        NSApp.hide(nil)
-        self.showPermissionAlert = false
     }
 }

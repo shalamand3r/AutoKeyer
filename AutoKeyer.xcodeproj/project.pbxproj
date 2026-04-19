@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C0FFFB342F9574AA006CA99D /* AskForPermission in Frameworks */ = {isa = PBXBuildFile; productRef = C0A1A1A22F8B8A00004D51A5 /* AskForPermission */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		C013CD5C2F8B7DA7004D51A5 /* AutoKeyer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AutoKeyer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0FFFB342F9574AA006CA99D /* AskForPermission in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = AutoKeyer;
 			packageProductDependencies = (
+				C0A1A1A22F8B8A00004D51A5 /* AskForPermission */,
 			);
 			productName = AutoKeyer;
 			productReference = C013CD5C2F8B7DA7004D51A5 /* AutoKeyer.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = C013CD532F8B7DA7004D51A5;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C0A1A1A12F8B8A00004D51A5 /* XCLocalSwiftPackageReference "AskForPermission-main" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C013CD5D2F8B7DA7004D51A5 /* Products */;
 			projectDirPath = "";
@@ -247,6 +256,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AutoKeyerIcon;
+				CODE_SIGN_ENTITLEMENTS = AutoKeyer/AutoKeyer.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -262,8 +272,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 1.5;
-				PRODUCT_BUNDLE_IDENTIFIER = mitsboochie.shalamand3r.AutoKeyer;
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.shalamand3r.AutoKeyer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -279,6 +289,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AutoKeyerIcon;
+				CODE_SIGN_ENTITLEMENTS = AutoKeyer/AutoKeyer.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -294,14 +305,16 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 1.5;
-				PRODUCT_BUNDLE_IDENTIFIER = mitsboochie.shalamand3r.AutoKeyer;
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.shalamand3r.AutoKeyer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_COMPILATION_MODE = singlefile;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -329,6 +342,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		C0A1A1A12F8B8A00004D51A5 /* XCLocalSwiftPackageReference "AskForPermission-main" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "AskForPermission-main";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C0A1A1A22F8B8A00004D51A5 /* AskForPermission */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C0A1A1A12F8B8A00004D51A5 /* XCLocalSwiftPackageReference "AskForPermission-main" */;
+			productName = AskForPermission;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C013CD542F8B7DA7004D51A5 /* Project object */;
 }
