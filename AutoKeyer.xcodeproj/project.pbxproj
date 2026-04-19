@@ -101,7 +101,7 @@
 			mainGroup = C013CD532F8B7DA7004D51A5;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				C0A1A1A12F8B8A00004D51A5 /* XCLocalSwiftPackageReference "AskForPermission-main" */,
+				C0A1A1A12F8B8A00004D51A5 /* XCLocalSwiftPackageReference "AskForPermission" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C013CD5D2F8B7DA7004D51A5 /* Products */;
@@ -344,16 +344,16 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		C0A1A1A12F8B8A00004D51A5 /* XCLocalSwiftPackageReference "AskForPermission-main" */ = {
+		C0A1A1A12F8B8A00004D51A5 /* XCLocalSwiftPackageReference "AskForPermission" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "AskForPermission-main";
+			relativePath = AskForPermission;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		C0A1A1A22F8B8A00004D51A5 /* AskForPermission */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C0A1A1A12F8B8A00004D51A5 /* XCLocalSwiftPackageReference "AskForPermission-main" */;
+			package = C0A1A1A12F8B8A00004D51A5 /* XCLocalSwiftPackageReference "AskForPermission" */;
 			productName = AskForPermission;
 		};
 /* End XCSwiftPackageProductDependency section */
