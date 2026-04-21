@@ -39,19 +39,6 @@ final class ArrowRecoilModel: ObservableObject {
             withAnimation(.interpolatingSpring(mass: 1, stiffness: 180, damping: 14)) {
                 self.recoilScaleY = 1.0
             }
-            // After the recoil visibly settles (~1.0s for this spring), dwell
-            // 1.0s, then play a one-shot max-amplitude "burp" so the arrow
-            // punctuates the end of the interaction with a final flex.
-            try? await Task.sleep(for: .milliseconds(1000 + 1000))
-            if Task.isCancelled { return }
-            withAnimation(.interpolatingSpring(mass: 1, stiffness: 220, damping: 13)) {
-                self.recoilScaleY = 2.0
-            }
-            try? await Task.sleep(for: .milliseconds(220))
-            if Task.isCancelled { return }
-            withAnimation(.interpolatingSpring(mass: 1, stiffness: 180, damping: 14)) {
-                self.recoilScaleY = 1.0
-            }
         }
     }
 
@@ -85,6 +72,7 @@ struct GuidePanelContentView: View {
     @State private var arrowScale: CGFloat
     @State private var arrowOffsetY: CGFloat
     @State private var arrowOpacity: CGFloat
+    @State private var recoilLoopTask: Task<Void, Never>?
 
     init(
         kind: PermissionKind,
@@ -119,6 +107,11 @@ struct GuidePanelContentView: View {
         }
         .frame(width: Self.preferredWidth, height: Self.height, alignment: .topLeading)
         .onAppear(perform: playEntranceAnimations)
+        .onDisappear {
+            recoilLoopTask?.cancel()
+            recoilLoopTask = nil
+            arrowRecoil.reset()
+        }
     }
 
     private var card: some View {
@@ -214,6 +207,7 @@ struct GuidePanelContentView: View {
 
     private func playEntranceAnimations() {
         guard !isStaticRender else { return }
+        startRecoilLoopIfNeeded()
         // State already starts pre-entrance (init-time). Animate to final
         // with a visibly underdamped spring; initialVelocity carries the
         // "kicked loose by the card's landing" impulse.
@@ -224,6 +218,16 @@ struct GuidePanelContentView: View {
             arrowScale = 1.0
             arrowOffsetY = 0
             arrowOpacity = 1
+        }
+    }
+
+    private func startRecoilLoopIfNeeded() {
+        guard recoilLoopTask == nil else { return }
+        recoilLoopTask = Task { @MainActor in
+            while !Task.isCancelled {
+                arrowRecoil.kick(verticalVelocityPerSecond: -1600)
+                try? await Task.sleep(for: .milliseconds(1500))
+            }
         }
     }
 }
