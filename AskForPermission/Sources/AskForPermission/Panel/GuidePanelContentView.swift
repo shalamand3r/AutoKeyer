@@ -1,6 +1,23 @@
 import AppKit
 import SwiftUI
 
+private struct VisualEffectView: NSViewRepresentable {
+    let material: NSVisualEffectView.Material
+    let blendingMode: NSVisualEffectView.BlendingMode
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = material
+        view.blendingMode = blendingMode
+        // keep it consistent even if Settings isn't key for a moment
+        view.state = .active
+        view.isEmphasized = false
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
 /// Vertical-motion recoil for the up-arrow while the guide panel follows a
 /// dragged System Settings window.
 ///
@@ -127,12 +144,19 @@ struct GuidePanelContentView: View {
         .padding(.trailing, 18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(
-            RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+            Group {
+                if isStaticRender {
+                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                        .fill(Color.clear)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                                .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.18 : 0.12))
+                        )
+                } else {
+                    VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
+                        .clipShape(RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous))
+                }
+            }
         )
     }
 
@@ -160,7 +184,11 @@ struct GuidePanelContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.8902))
+                    .fill(Color.clear)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.26 : 0.16))
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)

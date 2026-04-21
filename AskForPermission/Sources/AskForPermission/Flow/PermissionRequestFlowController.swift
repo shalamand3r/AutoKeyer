@@ -160,10 +160,13 @@ final class PermissionRequestFlowController {
         }
         switch outcome {
         case .userCancelled:
-            let freshTargetImage = renderPanelSnapshot(panel: panel, targetFrame: targetFrame) ?? targetImage
+            // Start the reverse flight from wherever the guide panel is now
+            // (Settings might have been dragged around).
+            let reverseTargetFrame = panel.frame
+            let freshTargetImage = renderPanelSnapshot(panel: panel, targetFrame: reverseTargetFrame) ?? targetImage
             await runReverseTransition(
                 sourceFrame: reverseSourceFrame,
-                targetFrame: targetFrame,
+                targetFrame: reverseTargetFrame,
                 panel: panel,
                 sourceImage: sourceSnapshot,
                 targetImage: freshTargetImage,

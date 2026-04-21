@@ -2,6 +2,22 @@ import AppKit
 import Combine
 import SwiftUI
 
+private struct VisualEffectView: NSViewRepresentable {
+    let material: NSVisualEffectView.Material
+    let blendingMode: NSVisualEffectView.BlendingMode
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = material
+        view.blendingMode = blendingMode
+        view.state = .active
+        view.isEmphasized = false
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
 @MainActor
 final class FlightReplicantModel: ObservableObject {
     @Published var sourceImage: NSImage?
@@ -18,6 +34,8 @@ struct FlightReplicantContentView: View {
 
     var body: some View {
         ZStack {
+            // match the docked guide panel's wallpaper-tinted blur during flight
+            VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
             // No `.aspectRatio(...)` — both images are stretched to fill the
             // replicant's rect so a row-sized source snapshot grows smoothly
             // into the full panel-sized target snapshot without letterboxing.
@@ -38,7 +56,7 @@ struct FlightReplicantContentView: View {
         .clipShape(RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.08 * model.shadowOpacity), lineWidth: 1)
+                .strokeBorder(Color(nsColor: .separatorColor).opacity(0.7 * model.shadowOpacity), lineWidth: 1)
         )
         // Composite the image stack as a single unit *before* blurring, so
         // the blur applies uniformly to the rasterized result.

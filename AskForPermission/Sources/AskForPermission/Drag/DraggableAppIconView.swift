@@ -9,7 +9,7 @@ final class DraggableAppIconView: NSView, NSDraggingSource {
     private let appIcon: NSImage
     private let iconView: NSImageView
     private let nameLabel: NSTextField
-    private let background: NSView
+    private let background: NSVisualEffectView
     private let iconSize: NSSize = NSSize(width: 32, height: 32)
     private var mouseDownEvent: NSEvent?
     private var hasStartedDrag = false
@@ -26,7 +26,7 @@ final class DraggableAppIconView: NSView, NSDraggingSource {
         self.appIcon = icon
         self.iconView = NSImageView(image: icon)
         self.nameLabel = NSTextField(labelWithString: appName)
-        self.background = NSView()
+        self.background = NSVisualEffectView()
 
         super.init(frame: NSRect(x: 0, y: 0, width: 320, height: 44))
         wantsLayer = true
@@ -51,12 +51,22 @@ final class DraggableAppIconView: NSView, NSDraggingSource {
     override func updateLayer() {
         super.updateLayer()
         let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        background.layer?.backgroundColor = isDark ? NSColor(white: 0.17, alpha: 1).cgColor : NSColor(calibratedWhite: 0.8902, alpha: 1).cgColor
-        background.layer?.borderColor = isDark ? NSColor.white.withAlphaComponent(0.1).cgColor : NSColor.black.withAlphaComponent(0.08).cgColor
+        // wallpaper tinting comes from the visual effect view; we add a small
+        // "wash" so the row reads well over bright wallpapers
+        background.layer?.backgroundColor = isDark
+            ? NSColor.controlBackgroundColor.withAlphaComponent(0.22).cgColor
+            : NSColor.controlBackgroundColor.withAlphaComponent(0.14).cgColor
+        background.layer?.borderColor = isDark
+            ? NSColor.white.withAlphaComponent(0.10).cgColor
+            : NSColor.black.withAlphaComponent(0.08).cgColor
     }
 
     private func setupSubviews() {
         background.wantsLayer = true
+        background.material = .underWindowBackground
+        background.blendingMode = .withinWindow
+        background.state = .active
+        background.isEmphasized = false
         background.layer?.cornerRadius = 7
         background.layer?.borderWidth = 1
         background.translatesAutoresizingMaskIntoConstraints = false
