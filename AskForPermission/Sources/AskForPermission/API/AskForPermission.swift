@@ -69,6 +69,33 @@ public enum AskForPermission {
         }
     }
 
+    @discardableResult
+    public static func request(
+        _ kind: PermissionKind,
+        sourceRectProvider: @escaping @MainActor () -> CGRect,
+        sourceSnapshot: NSImage? = nil
+    ) async -> PermissionRequestResult {
+        let center: PermissionCenter
+        switch resolveCenter() {
+        case .ready(let c): center = c
+        case .failed(let error): return .unavailable(error)
+        }
+        do {
+            return try await center.request(
+                kind,
+                sourceRectProvider: sourceRectProvider,
+                sourceSnapshot: sourceSnapshot
+            )
+        } catch let error as PermissionRequestError {
+            return .unavailable(error)
+        } catch {
+            return .unavailable(PermissionRequestError(
+                code: .openSystemSettingsFailed,
+                message: error.localizedDescription
+            ))
+        }
+    }
+
     // MARK: - Internal (used by upcoming AppKit/SwiftUI convenience layers)
 
     static func sharedCenter() -> PermissionCenter? {

@@ -9,14 +9,21 @@ extension AskForPermission {
         _ kind: PermissionKind,
         from view: NSView
     ) async -> PermissionRequestResult {
-        guard let window = view.window, let screenRect = screenRect(of: view) else {
+        guard let window = view.window, let _ = Self.screenRect(of: view) else {
             return .unavailable(PermissionRequestError(
                 code: .missingHostApplicationBundle,
                 message: "AskForPermission.request(_:from:) requires the view to be in a window."
             ))
         }
         prepareHostWindow(window)
-        return await request(kind, sourceRectInScreen: screenRect, sourceSnapshot: nil)
+        return await request(
+            kind,
+            sourceRectProvider: { [weak view] in
+                guard let view else { return .zero }
+                return Self.screenRect(of: view) ?? .zero
+            },
+            sourceSnapshot: nil
+        )
     }
 
     /// Returns a retained `NSWindowController` wrapping the permissions

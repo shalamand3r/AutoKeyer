@@ -35,11 +35,25 @@ public final class PermissionCenter {
         sourceRectInScreen: CGRect,
         sourceSnapshot: NSImage? = nil
     ) async throws -> PermissionRequestResult {
+        try await request(
+            kind,
+            sourceRectProvider: { sourceRectInScreen },
+            sourceSnapshot: sourceSnapshot
+        )
+    }
+
+    @discardableResult
+    public func request(
+        _ kind: PermissionKind,
+        sourceRectProvider: @escaping @MainActor () -> CGRect,
+        sourceSnapshot: NSImage? = nil
+    ) async throws -> PermissionRequestResult {
         if status(for: kind) { return .alreadyAuthorized }
-        let snapshot = sourceSnapshot ?? captureInProcessScreenRegion(sourceRectInScreen)
+        let initialRect = sourceRectProvider()
+        let snapshot = sourceSnapshot ?? captureInProcessScreenRegion(initialRect)
         return try await flow.run(
             kind: kind,
-            sourceRectProvider: { sourceRectInScreen },
+            sourceRectProvider: sourceRectProvider,
             sourceSnapshot: snapshot,
             state: state
         )

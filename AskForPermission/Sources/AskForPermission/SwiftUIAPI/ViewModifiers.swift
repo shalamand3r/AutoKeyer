@@ -29,22 +29,23 @@ extension View {
 private struct RequestsPermissionModifier: ViewModifier {
     let kind: PermissionKind
     let onResult: (PermissionRequestResult) -> Void
-    @State private var rect: CGRect = .zero
+    @State private var provider = RowRectProvider()
     @State private var isRunning = false
 
     func body(content: Content) -> some View {
         content
-            .background(ScreenRectReader(rect: $rect))
+            .background(RowRectProbeView(provider: provider))
             .background(HostWindowConfigurator())
             .contentShape(Rectangle())
             .onTapGesture {
                 guard !isRunning else { return }
                 isRunning = true
                 Task { @MainActor in
-                    let sourceRect = await waitForUsableRect()
+                    let initialSourceRect = await waitForUsableRect()
                     let result = await AskForPermission.request(
                         kind,
-                        sourceRectInScreen: sourceRect
+                        sourceRectProvider: { provider.rect },
+                        sourceSnapshot: captureInProcessScreenRegion(initialSourceRect)
                     )
                     isRunning = false
                     onResult(result)
@@ -56,8 +57,8 @@ private struct RequestsPermissionModifier: ViewModifier {
     private func waitForUsableRect() async -> CGRect {
         let clock = ContinuousClock()
         let deadline = clock.now + .milliseconds(1_000)
-        var candidate = rect
         while clock.now < deadline {
+            let candidate = provider.rect
             if candidate.width > 1, candidate.height > 1,
                NSApp.windows.contains(where: { w in
                    w.isVisible && !w.isMiniaturized && w.frame.intersects(candidate)
@@ -67,28 +68,28 @@ private struct RequestsPermissionModifier: ViewModifier {
 
             await Task.yield()
             try? await Task.sleep(for: .milliseconds(16))
-            candidate = rect
         }
-        return candidate
+        return provider.rect
     }
 }
 
 private struct AskForPermissionItemModifier: ViewModifier {
     @Binding var item: PermissionKind?
     let onResult: (PermissionRequestResult) -> Void
-    @State private var rect: CGRect = .zero
+    @State private var provider = RowRectProvider()
 
     func body(content: Content) -> some View {
         content
-            .background(ScreenRectReader(rect: $rect))
+            .background(RowRectProbeView(provider: provider))
             .background(HostWindowConfigurator())
             .onChange(of: item) { newValue in
                 guard let kind = newValue else { return }
                 Task { @MainActor in
-                    let sourceRect = await waitForUsableRect()
+                    let initialSourceRect = await waitForUsableRect()
                     let result = await AskForPermission.request(
                         kind,
-                        sourceRectInScreen: sourceRect
+                        sourceRectProvider: { provider.rect },
+                        sourceSnapshot: captureInProcessScreenRegion(initialSourceRect)
                     )
                     item = nil
                     onResult(result)
@@ -100,8 +101,8 @@ private struct AskForPermissionItemModifier: ViewModifier {
     private func waitForUsableRect() async -> CGRect {
         let clock = ContinuousClock()
         let deadline = clock.now + .milliseconds(1_000)
-        var candidate = rect
         while clock.now < deadline {
+            let candidate = provider.rect
             if candidate.width > 1, candidate.height > 1,
                NSApp.windows.contains(where: { w in
                    w.isVisible && !w.isMiniaturized && w.frame.intersects(candidate)
@@ -111,8 +112,7 @@ private struct AskForPermissionItemModifier: ViewModifier {
 
             await Task.yield()
             try? await Task.sleep(for: .milliseconds(16))
-            candidate = rect
         }
-        return candidate
+        return provider.rect
     }
 }
