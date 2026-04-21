@@ -2,16 +2,25 @@ import AppKit
 import QuartzCore
 import SwiftUI
 
+private extension Notification.Name {
+    static let askForPermissionProgrammaticCancel = Notification.Name("AskForPermissionProgrammaticCancel")
+}
+
 @MainActor
 final class PermissionRequestFlowController {
     private let bundleURL: URL
     private let appName: String
     private let appIcon: NSImage
+    private let hostBundleIdentifier: String?
 
     private var panel: GuidePanelWindow?
     private var replicant: FlightReplicantWindow?
     private var trackingTask: Task<Void, Never>?
     private var dragContinuation: CheckedContinuation<DragOutcome, Never>?
+    private var cancelObserver: NSObjectProtocol?
+    private var focusLossObserver: NSObjectProtocol?
+    private var sourceRectProvider: (@MainActor () -> CGRect)?
+    private var isAutoDismissInFlight = false
 
     // Previous panel-frame sample, used to derive the vertical velocity we
     // feed into the arrow recoil model on each tracker tick.
@@ -26,6 +35,7 @@ final class PermissionRequestFlowController {
     init(bundleURL: URL, appName: String) {
         self.bundleURL = bundleURL
         self.appName = appName
+        self.hostBundleIdentifier = Bundle(url: bundleURL)?.bundleIdentifier
         let icon = NSWorkspace.shared.icon(forFile: bundleURL.path)
         icon.size = NSSize(width: 72, height: 72)
         self.appIcon = icon
@@ -37,6 +47,7 @@ final class PermissionRequestFlowController {
         sourceSnapshot: NSImage?,
         state: PermissionStatusModel
     ) async throws -> PermissionRequestResult {
+        self.sourceRectProvider = sourceRectProvider
         state.inProgressPermission = kind
         defer {
             state.inProgressPermission = nil
@@ -75,6 +86,14 @@ final class PermissionRequestFlowController {
         panel.onBack = { [weak self] in self?.handleBackTap() }
         self.panel = panel
 
+        cancelObserver = NotificationCenter.default.addObserver(
+            forName: .askForPermissionProgrammaticCancel,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.cancelFromHost()
+        }
+
         let targetFrame = dockedFrame(for: panel, near: settingsFrame)
         // Re-query so the flight launches from the row's CURRENT screen
         // position — the user may have dragged the host window between the
@@ -106,6 +125,9 @@ final class PermissionRequestFlowController {
         // can drop on its list. Our guide panel is a non-activating
         // floating panel so it stays visible above Settings.
         activateSystemSettings()
+        // If the user clicks away from System Settings while the guide is up,
+        // treat it like backing out and fly home automatically.
+        startAutoDismissOnSettingsFocusLoss()
 
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(120))
@@ -138,7 +160,7 @@ final class PermissionRequestFlowController {
                 self.lastPanelSampleTime = now
                 panel.setFrame(updated, display: true, animate: false)
             },
-            onLoss: { [weak self] in self?.teardown() }
+            onLoss: { [weak self] in self?.cancelFromHost() }
         )
 
         panel.draggableView?.onDragEnded = { [weak self] operation in
@@ -206,6 +228,60 @@ final class PermissionRequestFlowController {
     private func awaitDropOnSettingsList() async -> DragOutcome {
         await withCheckedContinuation { (continuation: CheckedContinuation<DragOutcome, Never>) in
             self.dragContinuation = continuation
+        }
+    }
+
+    private func cancelFromHost() {
+        dragContinuation?.resume(returning: .userCancelled)
+        dragContinuation = nil
+    }
+
+    private func startAutoDismissOnSettingsFocusLoss() {
+        focusLossObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self else { return }
+            guard self.panel != nil else { return }
+            guard self.dragContinuation != nil else { return }
+            guard !self.isAutoDismissInFlight else { return }
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            let bundleID = app?.bundleIdentifier
+            guard bundleID != "com.apple.systempreferences" else { return }
+
+            Task { @MainActor in
+                self.isAutoDismissInFlight = true
+                // keep the host popover pinned/open so the landing pad is visible
+                NotificationCenter.default.post(
+                    name: Notification.Name("permissionFlowActiveChanged"),
+                    object: true
+                )
+                NotificationCenter.default.post(
+                    name: Notification.Name("AskForPermissionBackTapped"),
+                    object: nil
+                )
+                await self.waitForUsableHostSourceRect(timeout: .milliseconds(1_500))
+                self.cancelFromHost()
+            }
+        }
+    }
+
+    @MainActor
+    private func waitForUsableHostSourceRect(timeout: Duration) async {
+        guard let provider = sourceRectProvider else { return }
+        let clock = ContinuousClock()
+        let deadline = clock.now + timeout
+        while clock.now < deadline {
+            let rect = provider()
+            if rect.width > 1, rect.height > 1,
+               NSApp.windows.contains(where: { w in
+                   w.isVisible && !w.isMiniaturized && w.frame.intersects(rect)
+               }) {
+                return
+            }
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(16))
         }
     }
 
@@ -439,6 +515,14 @@ final class PermissionRequestFlowController {
     // MARK: - Teardown
 
     private func teardown() {
+        if let cancelObserver {
+            NotificationCenter.default.removeObserver(cancelObserver)
+            self.cancelObserver = nil
+        }
+        if let focusLossObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(focusLossObserver)
+            self.focusLossObserver = nil
+        }
         trackingTask?.cancel()
         trackingTask = nil
         panel?.orderOut(nil)
@@ -447,6 +531,8 @@ final class PermissionRequestFlowController {
         replicant = nil
         dragContinuation?.resume(returning: .userCancelled)
         dragContinuation = nil
+        sourceRectProvider = nil
+        isAutoDismissInFlight = false
     }
 
     // MARK: - Math
