@@ -247,9 +247,9 @@ struct ContentView: View {
             )
         }
         .padding(16)
-        .background(Color.autoKeyerAccent.opacity(0.15))
+        .background(Color.primary.opacity(0.04))
         .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.autoKeyerAccent.opacity(0.2), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
         .layoutPriority(1)
