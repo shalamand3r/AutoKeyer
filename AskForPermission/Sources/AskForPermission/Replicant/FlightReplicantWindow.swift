@@ -31,18 +31,29 @@ final class FlightReplicantModel: ObservableObject {
 
 struct FlightReplicantContentView: View {
     @ObservedObject var model: FlightReplicantModel
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let showTransitionChrome = model.blurRadius > 0.01 || model.progress < 0.999
+
         ZStack {
-            // match the docked guide panel's wallpaper-tinted blur during flight
-            VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
-            // add the same subtle wash the docked panel uses so the replicant
-            // doesn't read as a flat light/dark slab mid-flight.
-                .overlay(
-                    RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
-                        .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
-                )
+            // During the morph we blur the replicant as a whole. If the
+            // crossfading snapshots contain any transparency (especially
+            // around rounded corners and strokes), the blur can "pull in"
+            // whatever is behind the replicant and the surface reads like it
+            // changes material at the end. Give the in-flight surface its own
+            // consistent backdrop that matches the final panel chrome.
+            if showTransitionChrome {
+                VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
+                            .fill(Color(nsColor: .controlBackgroundColor).opacity(0.08))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 1.5)
+                    )
+            }
+
             // No `.aspectRatio(...)` — both images are stretched to fill the
             // replicant's rect so a row-sized source snapshot grows smoothly
             // into the full panel-sized target snapshot without letterboxing.

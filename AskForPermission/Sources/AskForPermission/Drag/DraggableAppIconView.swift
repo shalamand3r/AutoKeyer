@@ -11,7 +11,7 @@ final class DraggableAppIconView: NSView, NSDraggingSource {
     private let nameLabel: NSTextField
     private let background: NSVisualEffectView
     private let iconSize: NSSize = NSSize(width: 32, height: 32)
-    private let cornerRadius: CGFloat = 9
+    private let cornerRadius: CGFloat = 14
     private var mouseDownEvent: NSEvent?
     private var hasStartedDrag = false
 
@@ -56,10 +56,10 @@ final class DraggableAppIconView: NSView, NSDraggingSource {
         // "wash" so the row reads well over bright wallpapers
         background.layer?.backgroundColor = isDark
             ? NSColor.controlBackgroundColor.withAlphaComponent(0.30).cgColor
-            : NSColor.controlBackgroundColor.withAlphaComponent(0.20).cgColor
+            : NSColor.white.withAlphaComponent(0.40).cgColor
         background.layer?.borderColor = isDark
             ? NSColor.white.withAlphaComponent(0.11).cgColor
-            : NSColor.black.withAlphaComponent(0.09).cgColor
+            : NSColor.white.withAlphaComponent(0.40).cgColor
     }
 
     private func setupSubviews() {
@@ -71,7 +71,7 @@ final class DraggableAppIconView: NSView, NSDraggingSource {
         background.state = .active
         background.isEmphasized = false
         background.layer?.cornerRadius = cornerRadius
-        background.layer?.borderWidth = 1
+        background.layer?.borderWidth = 1.5
         background.translatesAutoresizingMaskIntoConstraints = false
         addSubview(background)
 

@@ -76,14 +76,18 @@ struct GuidePanelContentView: View {
     /// When true, skip entrance animation (used when rendering a static
     /// snapshot for the replicant's target image).
     let isStaticRender: Bool
+    /// When `isStaticRender` is true, prefer the live AppKit materials/views
+    /// (NSVisualEffectView + DraggableAppIconView) so the snapshot matches the
+    /// docked guide panel 1:1. This must NOT be used with `ImageRenderer`.
+    let useLiveMaterialsInStaticRender: Bool
 
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var arrowRecoil: ArrowRecoilModel
 
     static let preferredWidth: CGFloat = 464
     static let height: CGFloat = 118
-    static let cardCornerRadius: CGFloat = 22
-    static let rowCornerRadius: CGFloat = 9
+    static let cardCornerRadius: CGFloat = 26
+    static let rowCornerRadius: CGFloat = 14
 
     // Initial state depends on render mode: static snapshot starts at the
     // final pose (so the snapshot looks settled); a live render starts at
@@ -101,7 +105,8 @@ struct GuidePanelContentView: View {
         arrowRecoil: ArrowRecoilModel,
         onDraggableCreated: @escaping (DraggableAppIconView) -> Void,
         onBack: @escaping () -> Void,
-        isStaticRender: Bool = false
+        isStaticRender: Bool = false,
+        useLiveMaterialsInStaticRender: Bool = false
     ) {
         self.kind = kind
         self.appName = appName
@@ -110,6 +115,7 @@ struct GuidePanelContentView: View {
         self.onDraggableCreated = onDraggableCreated
         self.onBack = onBack
         self.isStaticRender = isStaticRender
+        self.useLiveMaterialsInStaticRender = useLiveMaterialsInStaticRender
         self._arrowRecoil = ObservedObject(wrappedValue: arrowRecoil)
         _arrowScale = State(initialValue: isStaticRender ? 1.0 : 0.2)
         _arrowOffsetY = State(initialValue: isStaticRender ? 0 : 18)
@@ -147,12 +153,32 @@ struct GuidePanelContentView: View {
         .background(
             Group {
                 if isStaticRender {
-                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
-                        .fill(Color.clear)
-                        .overlay(
+                    Group {
+                        if useLiveMaterialsInStaticRender {
+                            VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                                        .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous))
+                        } else {
                             RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
-                                .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.18 : 0.12))
-                        )
+                                .fill(Color.clear)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                                        .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
+                                )
+                        }
+                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                            .strokeBorder(
+                                colorScheme == .dark
+                                    ? Color.white.opacity(0.11)
+                                    : Color.white.opacity(0.35),
+                                lineWidth: 1.5
+                            )
+                    )
                 } else {
                     VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
                         .overlay(
@@ -161,6 +187,15 @@ struct GuidePanelContentView: View {
                                 .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
                         )
                         .clipShape(RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                                .strokeBorder(
+                                    colorScheme == .dark
+                                        ? Color.white.opacity(0.11)
+                                        : Color.white.opacity(0.35),
+                                    lineWidth: 1.5
+                                )
+                        )
                 }
             }
         )
@@ -172,7 +207,7 @@ struct GuidePanelContentView: View {
     // the real NSView so drag sessions originate from an `NSDraggingSource`.
     @ViewBuilder
     private var draggableRow: some View {
-        if isStaticRender {
+        if isStaticRender, !useLiveMaterialsInStaticRender {
             HStack(spacing: 10) {
                 Image(nsImage: appIcon)
                     .resizable()
@@ -189,17 +224,16 @@ struct GuidePanelContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: Self.rowCornerRadius, style: .continuous)
-                    .fill(Color.clear)
+                    .fill(.regularMaterial)
                     .overlay(
                         RoundedRectangle(cornerRadius: Self.rowCornerRadius, style: .continuous)
-                            .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.32 : 0.20))
+                            .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.30 : 0.20))
                     )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: Self.rowCornerRadius, style: .continuous)
                     .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.11) : Color.black.opacity(0.09), lineWidth: 1)
             )
-            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.12), radius: 6, x: 0, y: 3)
         } else {
             DraggableAppIconRepresentable(
                 bundleURL: bundleURL,

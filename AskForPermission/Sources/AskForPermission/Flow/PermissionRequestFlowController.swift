@@ -68,15 +68,6 @@ final class PermissionRequestFlowController {
         let tracker = SystemSettingsWindowTracker()
         let settingsFrame = try await tracker.waitForWindow(timeout: .seconds(6))
 
-        // System Settings is now frontmost. Reactivate our app and pull the
-        // source window back on top so the flight's starting frame is visible.
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
-        sourceWindow?.orderFrontRegardless()
-
         let panel = GuidePanelWindow(
             kind: kind,
             appName: appName,
@@ -95,12 +86,22 @@ final class PermissionRequestFlowController {
         }
 
         let targetFrame = dockedFrame(for: panel, near: settingsFrame)
+        // Capture the target snapshot while System Settings is still frontmost,
+        // so any `.behindWindow` materials match the final docked panel 1:1.
+        let targetImage = renderPanelSnapshot(panel: panel, targetFrame: targetFrame)
+
+        // Reactivate our app and pull the source window back on top so the
+        // flight's starting frame is visible.
+        if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        sourceWindow?.orderFrontRegardless()
         // Re-query so the flight launches from the row's CURRENT screen
         // position — the user may have dragged the host window between the
         // click and System Settings actually appearing.
         let sourceFrame = sourceRectProvider()
-
-        let targetImage = renderPanelSnapshot(panel: panel, targetFrame: targetFrame)
 
         let replicant = FlightReplicantWindow()
         replicant.setSourceImage(sourceSnapshot)
@@ -125,6 +126,12 @@ final class PermissionRequestFlowController {
         // can drop on its list. Our guide panel is a non-activating
         // floating panel so it stays visible above Settings.
         activateSystemSettings()
+        // Let the panel's `.behindWindow` materials re-sample with System
+        // Settings behind it BEFORE we drop the replicant, otherwise the
+        // handoff can "pop" as the blur/tint updates.
+        await waitForFrontmostSystemSettings(timeout: .milliseconds(200))
+        try? await Task.sleep(for: .milliseconds(16))
+        replicant.orderOut(nil)
         // If the user clicks away from System Settings while the guide is up,
         // treat it like backing out and fly home automatically.
         startAutoDismissOnSettingsFocusLoss()
@@ -198,8 +205,8 @@ final class PermissionRequestFlowController {
         case .dropped:
             // Drop landed on Settings' permission list — macOS now shows its
             // own TCC prompt on top. The reverse flight would compete with
-            // that system dialog, so we just hide the guide panel and
-            // replicant outright. We deliberately KEEP the row in its dashed
+        // that system dialog, so we just hide the guide panel and
+        // replicant outright. We deliberately KEEP the row in its dashed
             // "COMPLETE IN SYSTEM SETTINGS" state while the user decides in
             // the TCC dialog: if they click Allow, `isGranted` flips and we
             // clear the dashed state so the row cross-fades to "Done ✓"; if
@@ -324,6 +331,19 @@ final class PermissionRequestFlowController {
         }
     }
 
+    @MainActor
+    private func waitForFrontmostSystemSettings(timeout: Duration) async {
+        let clock = ContinuousClock()
+        let deadline = clock.now + timeout
+        while clock.now < deadline {
+            if NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.systempreferences" {
+                return
+            }
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(16))
+        }
+    }
+
     private func convertToAppKitCoordinates(_ cgRect: CGRect) -> NSRect {
         guard let primary = NSScreen.screens.first else { return cgRect }
         let primaryHeight = primary.frame.height
@@ -342,6 +362,22 @@ final class PermissionRequestFlowController {
         targetFrame: NSRect
     ) -> NSImage? {
         let isDark = panel.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+
+        // Best-effort path: render the real materials (NSVisualEffectView +
+        // DraggableAppIconView) in a transparent, off-screen panel positioned
+        // exactly where the guide will dock. This lets `.behindWindow` sample
+        // System Settings under it, so the target snapshot matches the final
+        // docked panel 1:1 during the morph.
+        if let materialSnapshot = renderMaterialAccurateSnapshot(
+            kind: panel.kind,
+            appName: panel.appName,
+            bundleURL: panel.bundleURL,
+            appIcon: panel.appIcon,
+            targetFrame: targetFrame,
+            isDark: isDark
+        ) {
+            return materialSnapshot
+        }
         
         // Render the SwiftUI content directly via ImageRenderer. Doing this
         // off-screen (without first ordering the window front) avoids the
@@ -366,6 +402,73 @@ final class PermissionRequestFlowController {
             height: targetFrame.height
         )
         return renderer.nsImage
+    }
+
+    @MainActor
+    private func renderMaterialAccurateSnapshot(
+        kind: PermissionKind,
+        appName: String,
+        bundleURL: URL,
+        appIcon: NSImage,
+        targetFrame: NSRect,
+        isDark: Bool
+    ) -> NSImage? {
+        let root = GuidePanelContentView(
+            kind: kind,
+            appName: appName,
+            bundleURL: bundleURL,
+            appIcon: appIcon,
+            arrowRecoil: ArrowRecoilModel(),
+            onDraggableCreated: { _ in },
+            onBack: {},
+            isStaticRender: true,
+            useLiveMaterialsInStaticRender: true
+        )
+        .environment(\.colorScheme, isDark ? .dark : .light)
+
+        let host = NSHostingView(rootView: root)
+        host.frame = NSRect(origin: .zero, size: targetFrame.size)
+        host.wantsLayer = true
+
+        let snapshotWindow = NSPanel(
+            contentRect: targetFrame,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        snapshotWindow.level = .floating
+        snapshotWindow.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+        snapshotWindow.isOpaque = false
+        snapshotWindow.backgroundColor = .clear
+        snapshotWindow.hasShadow = false
+        snapshotWindow.hidesOnDeactivate = false
+        snapshotWindow.isReleasedWhenClosed = false
+        snapshotWindow.ignoresMouseEvents = true
+        // keep it fully invisible but still renderable; very low alpha can
+        // change vibrancy/tint in some materials (shows up as a purple cast)
+        snapshotWindow.alphaValue = 0
+        snapshotWindow.appearance = NSAppearance(named: isDark ? .darkAqua : .aqua)
+        snapshotWindow.contentView = host
+
+        // Force AppKit to resolve the visual effect view's backing and let
+        // `.behindWindow` sample the Settings window under the dock location.
+        snapshotWindow.orderFrontRegardless()
+        snapshotWindow.contentView?.layoutSubtreeIfNeeded()
+        snapshotWindow.displayIfNeeded()
+        CATransaction.flush()
+
+        defer {
+            snapshotWindow.orderOut(nil)
+            snapshotWindow.close()
+        }
+
+        let bounds = host.bounds
+        guard bounds.width > 1, bounds.height > 1 else { return nil }
+        guard let rep = host.bitmapImageRepForCachingDisplay(in: bounds) else { return nil }
+        host.cacheDisplay(in: bounds, to: rep)
+        let image = NSImage(size: bounds.size)
+        image.addRepresentation(rep)
+        return image
     }
 
     // MARK: - Entrance animation (parabola + blur bell + apex crossfade)
@@ -425,10 +528,18 @@ final class PermissionRequestFlowController {
             try? await Task.sleep(for: .milliseconds(16))
         }
 
+        // Ensure we land on the exact final state (no rounding drift).
+        replicant.apply(
+            frame: targetFrame,
+            cornerRadius: GuidePanelWindow.cornerRadius,
+            progress: 1,
+            shadowOpacity: 1,
+            blurRadius: 0
+        )
+
         panel.setFrame(targetFrame, display: true, animate: false)
         panel.alphaValue = 1
         panel.orderFrontRegardless()
-        replicant.orderOut(nil)
     }
 
     // MARK: - Reverse transition (target → source with reversed curves)

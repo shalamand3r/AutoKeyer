@@ -13,7 +13,9 @@ final class GuidePanelWindow: NSPanel {
     var onBack: (() -> Void)?
 
     static let contentSize = CGSize(width: GuidePanelContentView.preferredWidth, height: GuidePanelContentView.height)
-    static let cornerRadius: CGFloat = 24
+    // Used for the in-flight replicant clip radius; keep it in sync with the
+    // actual rendered card radius so the handoff doesn't "pop" at the corners.
+    static let cornerRadius: CGFloat = GuidePanelContentView.cardCornerRadius
 
     init(kind: PermissionKind, appName: String, bundleURL: URL, appIcon: NSImage) {
         self.kind = kind
