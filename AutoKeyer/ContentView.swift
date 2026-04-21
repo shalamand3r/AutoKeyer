@@ -247,9 +247,9 @@ struct ContentView: View {
             )
         }
         .padding(16)
-        .background(Color.primary.opacity(0.04))
+        .background(Color.autoKeyerAccent.opacity(0.15))
         .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.autoKeyerAccent.opacity(0.2), lineWidth: 1))
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
         .layoutPriority(1)
@@ -274,6 +274,7 @@ struct ContentView: View {
                                 .font(.system(size: 13, weight: .bold, design: .monospaced))
                                 .foregroundColor(.autoKeyerRandomOrange)
                                 .frame(width: 60, height: 14, alignment: .trailing)
+                                .transition(.opacity)
                         } else {
                             if #available(macOS 14.0, *) {
                                 HStack(spacing: 0) {
@@ -285,11 +286,13 @@ struct ContentView: View {
                                 .foregroundColor(.primary)
                                 .animation(.spring(response: 0.28, dampingFraction: 0.88), value: manager.baseDelay)
                                 .frame(width: 60, height: 14, alignment: .trailing)
+                                .transition(.opacity)
                             } else {
                                 Text(delayDisplayText)
                                     .font(.system(size: 13, weight: .bold, design: .monospaced))
                                     .foregroundColor(.primary)
                                     .frame(width: 60, height: 14, alignment: .trailing)
+                                    .transition(.opacity)
                             }
                         }
                     }
@@ -318,9 +321,10 @@ struct ContentView: View {
                 }
 
                 .padding(15)
-                .background(Color.primary.opacity(0.04))
+                .background(manager.isRandomMode ? Color.autoKeyerRandomOrange.opacity(0.15) : Color.primary.opacity(0.04))
                 .cornerRadius(16)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(manager.isRandomMode ? Color.autoKeyerRandomOrange.opacity(0.3) : Color.primary.opacity(0.1), lineWidth: 1))
+                .animation(.easeInOut(duration: 0.3), value: manager.isRandomMode)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)
             }
@@ -366,6 +370,7 @@ struct ContentView: View {
                     RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.1))
                     if let image = manager.clipboardImage {
                         Image(nsImage: image).resizable().aspectRatio(contentMode: .fit).padding(6)
+                            .transition(.scale(scale: 0.95).combined(with: .opacity))
                     } else {
                         ScrollView {
                             Group {
@@ -382,8 +387,10 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(8)
                         }
+                        .transition(.scale(scale: 0.95).combined(with: .opacity))
                     }
                 }
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: manager.clipboardImage != nil)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 16)

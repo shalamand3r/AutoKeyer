@@ -190,25 +190,36 @@ class AutoKeyerManager: ObservableObject {
         
         if let image = NSImage(pasteboard: pb) {
             if isTyping { stopProcess() }
-            self.clipboardImage = image
-            self.clipboardText = ""
-            self.clipboardCharacters = []
+            if self.clipboardImage?.tiffRepresentation != image.tiffRepresentation {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    self.clipboardImage = image
+                    self.clipboardText = ""
+                    self.clipboardCharacters = []
+                }
+            }
             return
         }
         
-        self.clipboardImage = nil
         if let newText = pb.string(forType: .string) {
-            if clipboardText != newText {
+            if clipboardText != newText || clipboardImage != nil {
                 if isTyping { stopProcess() }
-                clipboardText = newText
-                clipboardCharacters = Array(newText)
-                currentIndex = 0
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    self.clipboardImage = nil
+                    self.clipboardText = newText
+                    self.clipboardCharacters = Array(newText)
+                    self.currentIndex = 0
+                }
             }
         } else {
-            if isTyping { stopProcess() }
-            clipboardText = ""
-            clipboardCharacters = []
-            currentIndex = 0
+            if clipboardText != "" || clipboardImage != nil {
+                if isTyping { stopProcess() }
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    self.clipboardImage = nil
+                    self.clipboardText = ""
+                    self.clipboardCharacters = []
+                    self.currentIndex = 0
+                }
+            }
         }
     }
 
