@@ -31,11 +31,18 @@ final class FlightReplicantModel: ObservableObject {
 
 struct FlightReplicantContentView: View {
     @ObservedObject var model: FlightReplicantModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
             // match the docked guide panel's wallpaper-tinted blur during flight
             VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
+            // add the same subtle wash the docked panel uses so the replicant
+            // doesn't read as a flat light/dark slab mid-flight.
+                .overlay(
+                    RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
+                        .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
+                )
             // No `.aspectRatio(...)` — both images are stretched to fill the
             // replicant's rect so a row-sized source snapshot grows smoothly
             // into the full panel-sized target snapshot without letterboxing.
@@ -54,10 +61,6 @@ struct FlightReplicantContentView: View {
         }
         .frame(width: model.contentSize.width, height: model.contentSize.height)
         .clipShape(RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
-                .strokeBorder(Color(nsColor: .separatorColor).opacity(0.7 * model.shadowOpacity), lineWidth: 1)
-        )
         // Composite the image stack as a single unit *before* blurring, so
         // the blur applies uniformly to the rasterized result.
         // `.compositingGroup()` is the lightweight path here — unlike
@@ -66,10 +69,6 @@ struct FlightReplicantContentView: View {
         // content's color space / size exceeds the group's limits.
         .compositingGroup()
         .blur(radius: model.blurRadius)
-        // 3-layer shadow stack: ambient (2), key (15), destination (3).
-        .shadow(color: .black.opacity(0.18 * model.shadowOpacity), radius: 2, y: 0)
-        .shadow(color: .black.opacity(0.22 * model.shadowOpacity), radius: 15, y: -6)
-        .shadow(color: .black.opacity(0.14 * model.shadowOpacity), radius: 3, y: 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -102,7 +101,8 @@ final class FlightReplicantWindow: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = false
+        // Match the docked guide panel's shadow style during flight.
+        hasShadow = true
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         ignoresMouseEvents = true
