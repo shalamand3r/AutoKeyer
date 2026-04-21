@@ -11,6 +11,7 @@ final class DraggableAppIconView: NSView, NSDraggingSource {
     private let nameLabel: NSTextField
     private let background: NSVisualEffectView
     private let iconSize: NSSize = NSSize(width: 32, height: 32)
+    private let cornerRadius: CGFloat = 9
     private var mouseDownEvent: NSEvent?
     private var hasStartedDrag = false
 
@@ -54,20 +55,22 @@ final class DraggableAppIconView: NSView, NSDraggingSource {
         // wallpaper tinting comes from the visual effect view; we add a small
         // "wash" so the row reads well over bright wallpapers
         background.layer?.backgroundColor = isDark
-            ? NSColor.controlBackgroundColor.withAlphaComponent(0.22).cgColor
-            : NSColor.controlBackgroundColor.withAlphaComponent(0.14).cgColor
+            ? NSColor.controlBackgroundColor.withAlphaComponent(0.30).cgColor
+            : NSColor.controlBackgroundColor.withAlphaComponent(0.20).cgColor
         background.layer?.borderColor = isDark
-            ? NSColor.white.withAlphaComponent(0.10).cgColor
-            : NSColor.black.withAlphaComponent(0.08).cgColor
+            ? NSColor.white.withAlphaComponent(0.11).cgColor
+            : NSColor.black.withAlphaComponent(0.09).cgColor
     }
 
     private func setupSubviews() {
         background.wantsLayer = true
-        background.material = .underWindowBackground
+        // distinct surface from the outer guide panel (which uses
+        // `.underWindowBackground` behind-window).
+        background.material = .popover
         background.blendingMode = .withinWindow
         background.state = .active
         background.isEmphasized = false
-        background.layer?.cornerRadius = 7
+        background.layer?.cornerRadius = cornerRadius
         background.layer?.borderWidth = 1
         background.translatesAutoresizingMaskIntoConstraints = false
         addSubview(background)
@@ -160,7 +163,7 @@ final class DraggableAppIconView: NSView, NSDraggingSource {
         let clipped = NSImage(size: bounds.size)
         clipped.lockFocus()
         let path = NSBezierPath(roundedRect: NSRect(origin: .zero, size: bounds.size),
-                                xRadius: 7, yRadius: 7)
+                                xRadius: cornerRadius, yRadius: cornerRadius)
         path.addClip()
         raw.draw(in: NSRect(origin: .zero, size: bounds.size))
         clipped.unlockFocus()

@@ -83,6 +83,7 @@ struct GuidePanelContentView: View {
     static let preferredWidth: CGFloat = 464
     static let height: CGFloat = 118
     static let cardCornerRadius: CGFloat = 22
+    static let rowCornerRadius: CGFloat = 9
 
     // Initial state depends on render mode: static snapshot starts at the
     // final pose (so the snapshot looks settled); a live render starts at
@@ -154,6 +155,11 @@ struct GuidePanelContentView: View {
                         )
                 } else {
                     VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
+                        .overlay(
+                            // subtle wash so the outer panel reads as its own surface
+                            RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                                .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous))
                 }
             }
@@ -162,9 +168,8 @@ struct GuidePanelContentView: View {
 
     // `ImageRenderer` cannot flatten `NSViewRepresentable`, so the static
     // snapshot path uses a pure-SwiftUI stand-in sized/styled identically to
-    // `DraggableAppIconView` (box cornerRadius 7, fill white 0.8902,
-    // icon 32×32). The live path keeps the real NSView so drag sessions
-    // originate from an `NSDraggingSource`.
+    // `DraggableAppIconView` (corner radius, wash/border). The live path keeps
+    // the real NSView so drag sessions originate from an `NSDraggingSource`.
     @ViewBuilder
     private var draggableRow: some View {
         if isStaticRender {
@@ -183,17 +188,18 @@ struct GuidePanelContentView: View {
             .padding(.trailing, 10)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: Self.rowCornerRadius, style: .continuous)
                     .fill(Color.clear)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.26 : 0.16))
+                        RoundedRectangle(cornerRadius: Self.rowCornerRadius, style: .continuous)
+                            .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.32 : 0.20))
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.08), lineWidth: 1)
+                RoundedRectangle(cornerRadius: Self.rowCornerRadius, style: .continuous)
+                    .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.11) : Color.black.opacity(0.09), lineWidth: 1)
             )
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.12), radius: 6, x: 0, y: 3)
         } else {
             DraggableAppIconRepresentable(
                 bundleURL: bundleURL,
