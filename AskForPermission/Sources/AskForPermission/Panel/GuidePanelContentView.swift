@@ -60,6 +60,7 @@ struct GuidePanelContentView: View {
     /// snapshot for the replicant's target image).
     let isStaticRender: Bool
 
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var arrowRecoil: ArrowRecoilModel
 
     static let preferredWidth: CGFloat = 464
@@ -159,11 +160,11 @@ struct GuidePanelContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color(white: 0.8902))
+                    .fill(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.8902))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                    .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.08), lineWidth: 1)
             )
         } else {
             DraggableAppIconRepresentable(

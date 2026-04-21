@@ -46,12 +46,19 @@ final class DraggableAppIconView: NSView, NSDraggingSource {
 
     override var isFlipped: Bool { false }
 
+    override var wantsUpdateLayer: Bool { true }
+
+    override func updateLayer() {
+        super.updateLayer()
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        background.layer?.backgroundColor = isDark ? NSColor(white: 0.17, alpha: 1).cgColor : NSColor(calibratedWhite: 0.8902, alpha: 1).cgColor
+        background.layer?.borderColor = isDark ? NSColor.white.withAlphaComponent(0.1).cgColor : NSColor.black.withAlphaComponent(0.08).cgColor
+    }
+
     private func setupSubviews() {
         background.wantsLayer = true
         background.layer?.cornerRadius = 7
-        background.layer?.backgroundColor = NSColor(calibratedWhite: 0.8902, alpha: 1).cgColor
         background.layer?.borderWidth = 1
-        background.layer?.borderColor = NSColor.black.withAlphaComponent(0.08).cgColor
         background.translatesAutoresizingMaskIntoConstraints = false
         addSubview(background)
 

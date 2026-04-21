@@ -160,12 +160,13 @@ final class PermissionRequestFlowController {
         }
         switch outcome {
         case .userCancelled:
+            let freshTargetImage = renderPanelSnapshot(panel: panel, targetFrame: targetFrame) ?? targetImage
             await runReverseTransition(
                 sourceFrame: reverseSourceFrame,
                 targetFrame: targetFrame,
                 panel: panel,
                 sourceImage: sourceSnapshot,
-                targetImage: targetImage,
+                targetImage: freshTargetImage,
                 onApex: clearActiveState
             )
             return .cancelled
@@ -261,6 +262,8 @@ final class PermissionRequestFlowController {
         panel: GuidePanelWindow,
         targetFrame: NSRect
     ) -> NSImage? {
+        let isDark = panel.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        
         // Render the SwiftUI content directly via ImageRenderer. Doing this
         // off-screen (without first ordering the window front) avoids the
         // cacheDisplay failures that started happening on macOS 26.
@@ -274,6 +277,8 @@ final class PermissionRequestFlowController {
             onBack: {},
             isStaticRender: true
         )
+        .environment(\.colorScheme, isDark ? .dark : .light)
+
         let renderer = ImageRenderer(content: root)
         renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
         renderer.isOpaque = false
