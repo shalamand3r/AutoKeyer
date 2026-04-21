@@ -555,7 +555,7 @@ struct ContentView: View {
                 .allowsHitTesting(!showPermissionCompletePlaceholder)
 
                 Button(action: { manager.showPermissionAlert = false }) {
-                    Text("Cancel")
+                    Text("Go Back")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
