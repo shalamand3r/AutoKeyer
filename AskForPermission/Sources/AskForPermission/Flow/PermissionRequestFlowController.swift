@@ -364,27 +364,10 @@ final class PermissionRequestFlowController {
     ) -> NSImage? {
         let isDark = panel.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
 
-        // Best-effort path: render the real materials (NSVisualEffectView +
-        // DraggableAppIconView) in a transparent, off-screen panel positioned
-        // exactly where the guide will dock. This lets `.behindWindow` sample
-        // System Settings under it, so the target snapshot matches the final
-        // docked panel 1:1 during the morph.
-        if let materialSnapshot = renderMaterialAccurateSnapshot(
-            kind: panel.kind,
-            appName: panel.appName,
-            bundleURL: panel.bundleURL,
-            appIcon: panel.appIcon,
-            targetFrame: targetFrame,
-            isDark: isDark
-        ) {
-            return materialSnapshot
-        }
-        
         // Render the SwiftUI content directly via ImageRenderer. Doing this
         // off-screen (without first ordering the window front) avoids the
         // cacheDisplay failures that started happening on macOS 26.
-        let root = GuidePanelContentView(
-            kind: panel.kind,
+        let root = GuidePanelContentView(            kind: panel.kind,
             appName: panel.appName,
             bundleURL: panel.bundleURL,
             appIcon: panel.appIcon,

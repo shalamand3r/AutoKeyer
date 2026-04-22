@@ -47,11 +47,8 @@ struct FlightReplicantContentView: View {
             // the replicant while it's flying (desktop/wallpaper can read
             // darker/bluer than the final docked state).
             if showTransitionChrome {
-                RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
-                    .fill(
-                        Color(nsColor: .windowBackgroundColor)
-                            .opacity(colorScheme == .dark ? 0.06 : 0.04)
-                    )
+                VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
+                    .clipShape(RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous))
             }
 
             // No `.aspectRatio(...)` — both images are stretched to fill the
