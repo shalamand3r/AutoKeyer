@@ -240,11 +240,7 @@ struct GuidePanelContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: Self.rowCornerRadius, style: .continuous)
-                    .fill(
-                        colorScheme == .dark
-                            ? Color.white.opacity(0.08)
-                            : Color.white.opacity(0.50)
-                    )
+                    .fill(Color.clear)
                     .overlay(
                         RoundedRectangle(cornerRadius: Self.rowCornerRadius, style: .continuous)
                             .fill(

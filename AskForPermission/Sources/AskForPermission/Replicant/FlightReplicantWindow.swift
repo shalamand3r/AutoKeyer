@@ -72,14 +72,6 @@ struct FlightReplicantContentView: View {
         // Blur the whole replicant surface (backdrop + snapshots) as one unit.
         .compositingGroup()
         .blur(radius: model.blurRadius)
-        // Keep the flight shadow subtle so it doesn't read like the surface
-        // changes when handing off to the docked panel.
-        .shadow(
-            color: .black.opacity((colorScheme == .dark ? 0.35 : 0.18) * model.shadowOpacity),
-            radius: 22,
-            x: 0,
-            y: -2
-        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -112,9 +104,7 @@ final class FlightReplicantWindow: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         isOpaque = false
         backgroundColor = .clear
-        // Use SwiftUI shadow in the content so we can tune it to match the
-        // docked panel without the window-level shadow reading too heavy.
-        hasShadow = false
+        hasShadow = true
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         ignoresMouseEvents = true
