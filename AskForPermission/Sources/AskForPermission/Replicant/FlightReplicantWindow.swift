@@ -11,7 +11,8 @@ private struct VisualEffectView: NSViewRepresentable {
         view.material = material
         view.blendingMode = blendingMode
         view.state = .active
-        view.isEmphasized = false
+        // keep it looking "focused" even when our panel isn't key
+        view.isEmphasized = true
         return view
     }
 
@@ -64,29 +65,31 @@ struct FlightReplicantContentView: View {
             // No `.aspectRatio(...)` — both images are stretched to fill the
             // replicant's rect so a row-sized source snapshot grows smoothly
             // into the full panel-sized target snapshot without letterboxing.
-            if let src = model.sourceImage {
-                Image(nsImage: src)
-                    .resizable()
-                    .interpolation(.high)
-                    .opacity(1 - model.progress)
+            ZStack {
+                if let src = model.sourceImage {
+                    Image(nsImage: src)
+                        .resizable()
+                        .interpolation(.high)
+                        .opacity(1 - model.progress)
+                }
+                if let tgt = model.targetImage {
+                    Image(nsImage: tgt)
+                        .resizable()
+                        .interpolation(.high)
+                        .opacity(model.progress)
+                }
             }
-            if let tgt = model.targetImage {
-                Image(nsImage: tgt)
-                    .resizable()
-                    .interpolation(.high)
-                    .opacity(model.progress)
-            }
+            // Composite the image stack as a single unit *before* blurring, so
+            // the blur applies uniformly to the rasterized result.
+            // `.compositingGroup()` is the lightweight path here — unlike
+            // `.drawingGroup()`, it doesn't allocate a Metal surface that can
+            // produce a yellow "render failed" placeholder on macOS 26 when the
+            // content's color space / size exceeds the group's limits.
+            .compositingGroup()
+            .blur(radius: model.blurRadius)
         }
         .frame(width: model.contentSize.width, height: model.contentSize.height)
         .clipShape(RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous))
-        // Composite the image stack as a single unit *before* blurring, so
-        // the blur applies uniformly to the rasterized result.
-        // `.compositingGroup()` is the lightweight path here — unlike
-        // `.drawingGroup()`, it doesn't allocate a Metal surface that can
-        // produce a yellow "render failed" placeholder on macOS 26 when the
-        // content's color space / size exceeds the group's limits.
-        .compositingGroup()
-        .blur(radius: model.blurRadius)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

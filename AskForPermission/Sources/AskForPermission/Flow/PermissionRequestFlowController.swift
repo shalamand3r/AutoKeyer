@@ -423,7 +423,7 @@ final class PermissionRequestFlowController {
             onDraggableCreated: { _ in },
             onBack: {},
             isStaticRender: true,
-            useLiveMaterialsInStaticRender: true
+            useLiveMaterialsInStaticRender: false
         )
         .environment(\.colorScheme, isDark ? .dark : .light)
 

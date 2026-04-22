@@ -69,7 +69,8 @@ final class DraggableAppIconView: NSView, NSDraggingSource {
         background.material = .popover
         background.blendingMode = .withinWindow
         background.state = .active
-        background.isEmphasized = false
+        // keep it looking "focused" even when our panel isn't key
+        background.isEmphasized = true
         background.layer?.cornerRadius = cornerRadius
         background.layer?.borderWidth = 1.5
         background.translatesAutoresizingMaskIntoConstraints = false

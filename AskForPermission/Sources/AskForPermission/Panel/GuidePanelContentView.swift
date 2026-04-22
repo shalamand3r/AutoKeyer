@@ -11,7 +11,8 @@ private struct VisualEffectView: NSViewRepresentable {
         view.blendingMode = blendingMode
         // keep it consistent even if Settings isn't key for a moment
         view.state = .active
-        view.isEmphasized = false
+        // keep it looking "focused" even when our panel isn't key
+        view.isEmphasized = true
         return view
     }
 
@@ -213,15 +214,28 @@ struct GuidePanelContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: Self.rowCornerRadius, style: .continuous)
-                    .fill(.regularMaterial)
+                    .fill(
+                        colorScheme == .dark
+                            ? Color.white.opacity(0.08)
+                            : Color.white.opacity(0.50)
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: Self.rowCornerRadius, style: .continuous)
-                            .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.30 : 0.20))
+                            .fill(
+                                colorScheme == .dark
+                                    ? Color(nsColor: .controlBackgroundColor).opacity(0.30)
+                                    : Color.white.opacity(0.40)
+                            )
                     )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: Self.rowCornerRadius, style: .continuous)
-                    .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.11) : Color.black.opacity(0.09), lineWidth: 1)
+                    .strokeBorder(
+                        colorScheme == .dark
+                            ? Color.white.opacity(0.11)
+                            : Color.white.opacity(0.40),
+                        lineWidth: 1.5
+                    )
             )
         } else {
             DraggableAppIconRepresentable(
