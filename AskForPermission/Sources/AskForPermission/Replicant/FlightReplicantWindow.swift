@@ -31,6 +31,7 @@ final class FlightReplicantModel: ObservableObject {
 
 struct FlightReplicantContentView: View {
     @ObservedObject var model: FlightReplicantModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let showTransitionChrome = model.blurRadius > 0.01 || model.progress < 0.999
@@ -46,11 +47,17 @@ struct FlightReplicantContentView: View {
                 VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
                     .overlay(
                         RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
-                            .fill(Color(nsColor: .controlBackgroundColor).opacity(0.08))
+                            .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
                     )
+                    .clipShape(RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 1.5)
+                            .strokeBorder(
+                                colorScheme == .dark
+                                    ? Color.white.opacity(0.11)
+                                    : Color.white.opacity(0.35),
+                                lineWidth: 1.5
+                            )
                     )
             }
 

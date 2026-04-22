@@ -104,6 +104,7 @@ final class PermissionRequestFlowController {
         let sourceFrame = sourceRectProvider()
 
         let replicant = FlightReplicantWindow()
+        replicant.appearance = panel.appearance
         replicant.setSourceImage(sourceSnapshot)
         replicant.setTargetImage(targetImage)
         self.replicant = replicant
@@ -554,6 +555,7 @@ final class PermissionRequestFlowController {
     ) async {
         let replicant = self.replicant ?? {
             let r = FlightReplicantWindow()
+            r.appearance = panel.appearance
             r.setSourceImage(sourceImage)
             r.setTargetImage(targetImage)
             self.replicant = r

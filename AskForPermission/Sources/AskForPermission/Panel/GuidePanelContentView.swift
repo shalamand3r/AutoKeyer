@@ -153,32 +153,21 @@ struct GuidePanelContentView: View {
         .background(
             Group {
                 if isStaticRender {
-                    Group {
-                        if useLiveMaterialsInStaticRender {
-                            VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
-                                        .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous))
-                        } else {
+                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                        .fill(Color.clear)
+                        .overlay(
                             RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
-                                .fill(Color.clear)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
-                                        .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
+                                .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                                .strokeBorder(
+                                    colorScheme == .dark
+                                        ? Color.white.opacity(0.11)
+                                        : Color.white.opacity(0.35),
+                                    lineWidth: 1.5
                                 )
-                        }
-                    }
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
-                            .strokeBorder(
-                                colorScheme == .dark
-                                    ? Color.white.opacity(0.11)
-                                    : Color.white.opacity(0.35),
-                                lineWidth: 1.5
-                            )
-                    )
+                        )
                 } else {
                     VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
                         .overlay(
