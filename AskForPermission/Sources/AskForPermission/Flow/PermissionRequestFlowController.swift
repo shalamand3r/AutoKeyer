@@ -86,21 +86,27 @@ final class PermissionRequestFlowController {
         }
 
         let targetFrame = dockedFrame(for: panel, near: settingsFrame)
-        // Capture the target snapshot while System Settings is still frontmost,
-        // so any `.behindWindow` materials match the final docked panel 1:1.
-        let targetImage = renderPanelSnapshot(panel: panel, targetFrame: targetFrame)
+        // grab the target snapshot while settings is frontmost so materials match
+        let isDark = panel.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let targetImage =
+            renderMaterialAccurateSnapshot(
+                kind: kind,
+                appName: appName,
+                bundleURL: bundleURL,
+                appIcon: appIcon,
+                targetFrame: targetFrame,
+                isDark: isDark
+            )
+            ?? renderPanelSnapshot(panel: panel, targetFrame: targetFrame)
 
-        // Reactivate our app and pull the source window back on top so the
-        // flight's starting frame is visible.
+        // bring us back so the flight starts from the visible row
         if #available(macOS 14.0, *) {
             NSApp.activate()
         } else {
             NSApp.activate(ignoringOtherApps: true)
         }
         sourceWindow?.orderFrontRegardless()
-        // Re-query so the flight launches from the row's CURRENT screen
-        // position — the user may have dragged the host window between the
-        // click and System Settings actually appearing.
+        // re-query in case the host window moved while settings opened
         let sourceFrame = sourceRectProvider()
 
         let replicant = FlightReplicantWindow()
@@ -109,11 +115,7 @@ final class PermissionRequestFlowController {
         replicant.setTargetImage(targetImage)
         self.replicant = replicant
 
-        // Flip the row to its dashed-placeholder state RIGHT before the
-        // flight starts. The replicant appears at the source rect at the
-        // same frame and masks the row's cross-fade, so the handoff is
-        // invisible. Flipping at click time instead produced a "vacuum"
-        // on the card while we were still waiting for Settings to appear.
+        // flip to dashed right before launch (replicant hides the swap)
         state.activePermissionRequest = kind
 
         await runEntranceAnimation(
@@ -123,18 +125,25 @@ final class PermissionRequestFlowController {
             panel: panel
         )
 
-        // Flight complete — hand focus back to System Settings so the user
-        // can drop on its list. Our guide panel is a non-activating
-        // floating panel so it stays visible above Settings.
+        // hand focus back to settings so the user can drop on its list
         activateSystemSettings()
-        // Let the panel's `.behindWindow` materials re-sample with System
-        // Settings behind it BEFORE we drop the replicant, otherwise the
-        // handoff can "pop" as the blur/tint updates.
-        await waitForFrontmostSystemSettings(timeout: .milliseconds(200))
-        try? await Task.sleep(for: .milliseconds(16))
+        // wait for settings so .behindWindow samples the right backing
+        let didActivate = await waitForFrontmostSystemSettings(timeout: .seconds(1))
+        if didActivate {
+            // let vibrancy settle before the crossfade
+            panel.contentView?.layoutSubtreeIfNeeded()
+            panel.displayIfNeeded()
+            CATransaction.flush()
+            try? await Task.sleep(for: .milliseconds(32))
+        } else {
+            // small grace delay if settings is slow to activate
+            try? await Task.sleep(for: .milliseconds(80))
+        }
+        let crossfadeDuration = crossfadeReplicantToPanel(replicant: replicant, panel: panel)
+        try? await Task.sleep(for: .milliseconds(Int(crossfadeDuration * 1000) + 20))
         replicant.orderOut(nil)
-        // If the user clicks away from System Settings while the guide is up,
-        // treat it like backing out and fly home automatically.
+        replicant.alphaValue = 1
+        // if they click away from settings, treat it like backing out
         startAutoDismissOnSettingsFocusLoss()
 
         Task { @MainActor in
@@ -333,16 +342,35 @@ final class PermissionRequestFlowController {
     }
 
     @MainActor
-    private func waitForFrontmostSystemSettings(timeout: Duration) async {
+    private func waitForFrontmostSystemSettings(timeout: Duration) async -> Bool {
         let clock = ContinuousClock()
         let deadline = clock.now + timeout
         while clock.now < deadline {
             if NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.systempreferences" {
-                return
+                return true
             }
             await Task.yield()
             try? await Task.sleep(for: .milliseconds(16))
         }
+        return false
+    }
+
+    @discardableResult
+    private func crossfadeReplicantToPanel(
+        replicant: FlightReplicantWindow,
+        panel: GuidePanelWindow
+    ) -> TimeInterval {
+        let duration: TimeInterval = 0.24
+        panel.alphaValue = 0
+        replicant.alphaValue = 1
+        // crossfade hides any last-moment tint/vibrancy pop
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            panel.animator().alphaValue = 1
+            replicant.animator().alphaValue = 0
+        }
+        return duration
     }
 
     private func convertToAppKitCoordinates(_ cgRect: CGRect) -> NSRect {
@@ -512,7 +540,7 @@ final class PermissionRequestFlowController {
             try? await Task.sleep(for: .milliseconds(16))
         }
 
-        // Ensure we land on the exact final state (no rounding drift).
+        // land on the exact final state (avoid rounding drift)
         replicant.apply(
             frame: targetFrame,
             cornerRadius: GuidePanelWindow.cornerRadius,
@@ -522,7 +550,8 @@ final class PermissionRequestFlowController {
         )
 
         panel.setFrame(targetFrame, display: true, animate: false)
-        panel.alphaValue = 1
+        // keep it hidden until we do the replicant→panel crossfade
+        panel.alphaValue = 0
         panel.orderFrontRegardless()
     }
 
