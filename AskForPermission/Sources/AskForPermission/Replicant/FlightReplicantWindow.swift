@@ -43,53 +43,46 @@ struct FlightReplicantContentView: View {
             // around rounded corners and strokes), the blur can "pull in"
             // whatever is behind the replicant and the surface reads like it
             // changes material at the end. Give the in-flight surface its own
-            // consistent backdrop that matches the final panel chrome.
+            // consistent backdrop that doesn't re-sample whatever is behind
+            // the replicant while it's flying (desktop/wallpaper can read
+            // darker/bluer than the final docked state).
             if showTransitionChrome {
-                VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
-                            .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
-                            .strokeBorder(
-                                colorScheme == .dark
-                                    ? Color.white.opacity(0.11)
-                                    : Color.white.opacity(0.35),
-                                lineWidth: 1.5
-                            )
+                RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous)
+                    .fill(
+                        Color(nsColor: .windowBackgroundColor)
+                            .opacity(colorScheme == .dark ? 0.06 : 0.04)
                     )
             }
 
             // No `.aspectRatio(...)` — both images are stretched to fill the
             // replicant's rect so a row-sized source snapshot grows smoothly
             // into the full panel-sized target snapshot without letterboxing.
-            ZStack {
-                if let src = model.sourceImage {
-                    Image(nsImage: src)
-                        .resizable()
-                        .interpolation(.high)
-                        .opacity(1 - model.progress)
-                }
-                if let tgt = model.targetImage {
-                    Image(nsImage: tgt)
-                        .resizable()
-                        .interpolation(.high)
-                        .opacity(model.progress)
-                }
+            if let src = model.sourceImage {
+                Image(nsImage: src)
+                    .resizable()
+                    .interpolation(.high)
+                    .opacity(1 - model.progress)
             }
-            // Composite the image stack as a single unit *before* blurring, so
-            // the blur applies uniformly to the rasterized result.
-            // `.compositingGroup()` is the lightweight path here — unlike
-            // `.drawingGroup()`, it doesn't allocate a Metal surface that can
-            // produce a yellow "render failed" placeholder on macOS 26 when the
-            // content's color space / size exceeds the group's limits.
-            .compositingGroup()
-            .blur(radius: model.blurRadius)
+            if let tgt = model.targetImage {
+                Image(nsImage: tgt)
+                    .resizable()
+                    .interpolation(.high)
+                    .opacity(model.progress)
+            }
         }
         .frame(width: model.contentSize.width, height: model.contentSize.height)
         .clipShape(RoundedRectangle(cornerRadius: model.cornerRadius, style: .continuous))
+        // Blur the whole replicant surface (backdrop + snapshots) as one unit.
+        .compositingGroup()
+        .blur(radius: model.blurRadius)
+        // Keep the flight shadow subtle so it doesn't read like the surface
+        // changes when handing off to the docked panel.
+        .shadow(
+            color: .black.opacity((colorScheme == .dark ? 0.35 : 0.18) * model.shadowOpacity),
+            radius: 22,
+            x: 0,
+            y: -2
+        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -122,8 +115,9 @@ final class FlightReplicantWindow: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         isOpaque = false
         backgroundColor = .clear
-        // Match the docked guide panel's shadow style during flight.
-        hasShadow = true
+        // Use SwiftUI shadow in the content so we can tune it to match the
+        // docked panel without the window-level shadow reading too heavy.
+        hasShadow = false
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         ignoresMouseEvents = true
@@ -168,3 +162,54 @@ final class FlightReplicantWindow: NSPanel {
         }
     }
 }
+
+#if DEBUG
+@MainActor
+struct FlightReplicantContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            FlightReplicantContentView(model: makeModel(progress: 0.5, blurRadius: 10))
+                .previewDisplayName("Flight Replicant (Mid)")
+
+            FlightReplicantContentView(model: makeModel(progress: 1.0, blurRadius: 0))
+                .previewDisplayName("Flight Replicant (Done)")
+        }
+        .frame(width: 420, height: 220)
+        .padding(24)
+    }
+
+    private static func makeModel(progress: CGFloat, blurRadius: CGFloat) -> FlightReplicantModel {
+        let model = FlightReplicantModel()
+        model.progress = progress
+        model.blurRadius = blurRadius
+        model.cornerRadius = 22
+        model.shadowOpacity = 1
+        model.contentSize = CGSize(width: 340, height: 120)
+
+        model.sourceImage = makeSampleImage(size: model.contentSize, title: "source")
+        model.targetImage = makeSampleImage(size: model.contentSize, title: "target")
+        return model
+    }
+
+    private static func makeSampleImage(size: CGSize, title: String) -> NSImage {
+        let image = NSImage(size: size)
+        image.lockFocus()
+
+        NSColor.black.withAlphaComponent(0.15).setFill()
+        NSBezierPath(roundedRect: NSRect(origin: .zero, size: size), xRadius: 22, yRadius: 22).fill()
+
+        let badgeRect = NSRect(x: 18, y: size.height / 2 - 16, width: 32, height: 32)
+        NSColor.systemOrange.setFill()
+        NSBezierPath(roundedRect: badgeRect, xRadius: 8, yRadius: 8).fill()
+
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 16, weight: .semibold),
+            .foregroundColor: NSColor.labelColor
+        ]
+        NSString(string: "\(title) row").draw(at: NSPoint(x: 64, y: size.height / 2 - 10), withAttributes: attrs)
+
+        image.unlockFocus()
+        return image
+    }
+}
+#endif

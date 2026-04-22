@@ -154,21 +154,47 @@ struct GuidePanelContentView: View {
         .background(
             Group {
                 if isStaticRender {
-                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
-                        .fill(Color.clear)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
-                                .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
-                                .strokeBorder(
-                                    colorScheme == .dark
-                                        ? Color.white.opacity(0.11)
-                                        : Color.white.opacity(0.35),
-                                    lineWidth: 1.5
+                    Group {
+                        if useLiveMaterialsInStaticRender {
+                            // Snapshot path that renders inside an off-screen
+                            // panel: we *can* use the real materials here, so
+                            // the captured image matches the docked UI.
+                            VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                                        .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
                                 )
-                        )
+                                .clipShape(RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                                        .strokeBorder(
+                                            colorScheme == .dark
+                                                ? Color.white.opacity(0.11)
+                                                : Color.white.opacity(0.35),
+                                            lineWidth: 1.5
+                                        )
+                                )
+                        } else {
+                            // Fallback path (ImageRenderer can't flatten
+                            // NSViewRepresentable): match sizing/styling as
+                            // close as possible without live materials.
+                            RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                                .fill(Color.clear)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                                        .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.10 : 0.06))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: Self.cardCornerRadius, style: .continuous)
+                                        .strokeBorder(
+                                            colorScheme == .dark
+                                                ? Color.white.opacity(0.11)
+                                                : Color.white.opacity(0.35),
+                                            lineWidth: 1.5
+                                        )
+                                )
+                        }
+                    }
                 } else {
                     VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
                         .overlay(
@@ -315,6 +341,20 @@ struct GuidePanelContentView: View {
         onDraggableCreated: { _ in },
         onBack: {},
         isStaticRender: true
+    )
+    .padding(24)
+}
+
+#Preview("Guide Panel (Docked)") {
+    GuidePanelContentView(
+        kind: .accessibility,
+        appName: "AutoKeyer",
+        bundleURL: Bundle.main.bundleURL,
+        appIcon: NSImage(systemSymbolName: "keyboard.fill", accessibilityDescription: nil) ?? NSImage(),
+        arrowRecoil: ArrowRecoilModel(),
+        onDraggableCreated: { _ in },
+        onBack: {},
+        isStaticRender: false
     )
     .padding(24)
 }
