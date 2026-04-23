@@ -29,6 +29,4 @@ Download the latest version from **[Releases](https://github.com/salameanon/Auto
 
 ---
 
-###### Notes: 
-###### - AutoKeyer requires accessibility permissions in System Settings to simulate keystrokes. 
-###### - Apparently AutoKeyer doesn't open on macOs Ventura. I don't have a Mac running macOS 13 to test ATM.
+###### Notes: AutoKeyer requires accessibility permissions in System Settings to simulate keystrokes. Also, AutoKeyer apparently doesn't open on macOs Ventura. I don't have a Mac running macOS 13 to test ATM.
