@@ -30,3 +30,13 @@ Download the latest version from **[Releases](https://github.com/salameanon/Auto
 ---
 
 ###### Notes: AutoKeyer requires accessibility permissions in System Settings to simulate keystrokes!
+
+---
+
+<p align="center">
+  <a href="https://github.com/shalamand3r/LiveSafariReborn/releases">
+    <img src="https://img.shields.io/github/downloads/shalamand3r/AutoKeyer/total?style=plastic&logo=github&label=Downloads&color=ffab74">
+  </a>
+</p>
+
+
